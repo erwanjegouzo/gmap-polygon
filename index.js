@@ -15,44 +15,43 @@
         }
 
         initialize(path) {
-
-            console.log('[GMapPolygon] initialize', path);
-
             this.options.map.setOptions({ draggableCursor: 'crosshair' });
 
             if (path && path.length) {
                 this.coords = path;
                 this.setEditMode();
             } else {
-                this.mapListeners['map clicked'] = google.maps.event.addListener(this.options.map, 'click', this.onShapeClicked.bind(this, 'map'));
-                this.mapListeners['map click once'] = google.maps.event.addListenerOnce(this.options.map, 'click', this.onMapFirstClick.bind(this));
+                this.addListener(this.options.map, 'click', this.onShapeClicked);
+                google.maps.event.addListenerOnce(this.options.map, 'click', this.onMapFirstClick.bind(this));
             }
 
             return this;
         }
 
-        destroy() {
-            console.log('[GMapPolygon] destroy', this.startingPoint);
-            this.destroyShapeListeners();
+        addListener(instance, eventType, cb, context) {
+            cb = context ? cb.bind(this, context) : cb.bind(this);
+            this.listeners.push(
+                google.maps.event.addListener(instance, eventType, cb)
+            );
+        }
 
+        destroy() {
             // removes all the gmap shapes
             this.destroyShape([this.handlePolyline, this.startingPoint, this.polyline, this.polygon]);
             this.destroyShape(this.markers);
             this.destroyShape(this.handles);
-
             // remove all the listeners
             this.destroyMapListeners();
 
             // reset the properties
             this.coords = [];
-
-            this.mapListeners = {};
-            this.polyline = null;
-            this.polygon = null;
-            this.handles = null;
-            this.handlePolyline = null;
-            this.markers = null;
-            this.startingPoint = null;
+            // this.mapListeners = [];
+            // this.polyline = null;
+            // this.polygon = null;
+            // this.handles = null;
+            // this.handlePolyline = null;
+            // this.markers = null;
+            // this.startingPoint = null;
             this.polygonIsComplete = false;
 
             return this;
@@ -62,29 +61,22 @@
             if (!Array.isArray(shapes)) {
                 shapes = [shapes];
             }
-
-            shapes.forEach(function (s) {
-                if (s && s.setMap) {
-                    s.setMap(null);
-                    s = null;
+            shapes.forEach(function (shape) {
+                if (shape) {
+                    google.maps.event.clearInstanceListeners(shape);
+                    shape.setMap(null);
+                    shape = null;
                 }
             });
         }
 
         destroyMapListeners() {
-            var listeners = this.mapListeners || {};
-            Object.keys(listeners).forEach(key => google.maps.event.removeListener(listeners[key]));
-            listeners = null;
-        }
-
-        destroyShapeListeners() {
-            if (this.polyline) { google.maps.event.clearInstanceListeners(this.polyline); }
-            if (this.startingPoint) { google.maps.event.clearInstanceListeners(this.startingPoint); }
-            if (this.polygon) { google.maps.event.clearInstanceListeners(this.polygon); }
+            (this.mapListeners || []).forEach(listener => google.maps.event.removeListener(listener));
+            this.listeners = [];
         }
 
         getMarker(latLng) {
-            var iconOptions = extend({
+            const iconOptions = extend({
                 path: google.maps.SymbolPath.CIRCLE
             }, this.options.styles.point);
 
@@ -97,8 +89,8 @@
 
         drawStartingPoint(latLng) {
             this.startingPoint = this.getMarker(latLng);
-            google.maps.event.addListener(this.startingPoint, 'click', this.onStartingPointClicked.bind(this));
-            google.maps.event.addListener(this.startingPoint, 'mousemove', this.onMouseMove.bind(this));
+            this.addListener(this.startingPoint, 'click', this.onStartingPointClicked);
+            this.addListener(this.startingPoint, 'mousemove', this.onMouseMove);
         }
 
         drawPolyline(path) {
@@ -109,7 +101,7 @@
                 return;
             }
 
-            var params = extend({
+            const params = extend({
                 path: path,
                 map: this.options.map
             }, this.options.styles.line);
@@ -118,7 +110,7 @@
                 // The Polyline has not yet been created, so let's do it and bind the events
                 this.polyline = new google.maps.Polyline(params);
 
-                this.mapListeners['polyline click'] = google.maps.event.addListener(this.polyline, 'click', this.onShapeClicked.bind(this, 'polyline'));
+                this.addListener(this.polyline, 'click', this.onShapeClicked);
                 if (this.startingPoint) {
                     this.startingPoint.setOptions({zIndex: 200});
                 }
@@ -128,19 +120,18 @@
         }
 
         drawPolygon() {
-            var style = this.polygonIsComplete ? this.options.styles.polygonHighlight : this.options.styles.polygonMask;
-
-            var params = extend({
-                map: this.options.map,
-                path: this.coords
-            }, style);
+            const style = this.polygonIsComplete ? this.options.styles.polygonHighlight : this.options.styles.polygonMask,
+                params = extend({
+                    map: this.options.map,
+                    path: this.coords
+                }, style);
 
             if (!this.polygon) {
                 // The polygon has not yet been created, so let's do it and bind the events
                 this.polygon = new google.maps.Polygon(params);
 
-                this.mapListeners['polygon mousemove'] = google.maps.event.addListener(this.polygon, 'mousemove', this.onMouseMove.bind(this));
-                this.mapListeners['polygon click'] = google.maps.event.addListener(this.polygon, 'click', this.onShapeClicked.bind(this, 'polygon'));
+                this.addListener(this.polygon, 'mousemove', this.onMouseMove);
+                this.addListener(this.polygon, 'click', this.onShapeClicked);
 
                 if (this.startingPoint) { 
                     this.startingPoint.setOptions({zIndex: 200});
@@ -151,12 +142,11 @@
         }
 
         updateHandles() {
-            var self = this,
-                coords = this.coords,
+            const coords = this.coords,
                 l = coords.length;
 
             this.handles.forEach(function (handle, i) {
-                var nextIndex = (i + 1) % l,
+                const nextIndex = (i + 1) % l,
                     distance = google.maps.geometry.spherical.computeDistanceBetween(coords[i], coords[nextIndex]),
                     latLng = distance > 7 ? google.maps.geometry.spherical.interpolate(coords[i], coords[nextIndex], 0.5) : coords[i],
                     zIndex = distance > 7 ? 200 : 0;
@@ -169,22 +159,20 @@
         }
 
         drawHandles() {
-            const coords = this.coords,
-                self = this,
-                l = coords.length,
+            const self = this,
                 iconOptions = extend({
                     path: google.maps.SymbolPath.CIRCLE
                 }, this.options.styles.handle);
 
-            this.handles = coords.map(function (c, i) {
+            this.handles = this.coords.map(function (c, i) {
                const marker = new google.maps.Marker({
                     map: self.options.map,
                     icon: iconOptions,
                     draggable: true
                 });
 
-                self.mapListeners['handle drag ' + i] = google.maps.event.addListener(marker, 'drag', self.onHandleDragged.bind(self, i));
-                self.mapListeners['handle dragend ' + i] = google.maps.event.addListener(marker, 'dragend', self.onHandleDragEnded.bind(self, i));
+                self.addListener(marker, 'drag', self.onHandleDragged, i);
+                self.addListener(marker, 'dragend', self.onHandleDragEnded, i);
                 return marker;
             });
 
@@ -206,24 +194,19 @@
 
         setPolygonComplete() {
             this.polygonIsComplete = true;
-            this.destroyShapeListeners();
             // remove the lines & starting point
             this.destroyShape([this.polyline, this.startingPoint]);
-            if (this.options.polygonCallback) { this.options.polygonCallback(this.getPathLatLng()); }
+            if (this.options.polygonCallback) { this.options.polygonCallback(this.coords); }
             this.setEditMode();
         }
 
         setEditMode() {
             this.polygonIsComplete = true;
-
-            this.destroyShape(this.markers);
-            this.destroyShape(this.polygon);
+            this.destroyShape([this.polygon, this.handlePolyline]);
             this.destroyShape(this.handles);
-            this.destroyShape(this.handlePolyline);
-
+            this.destroyShape(this.markers);
             // draw the polygon before the markers so that is lays underneath
             this.drawPolygon();
-
             // kill all the listeners
             this.destroyMapListeners();
 
@@ -235,7 +218,7 @@
                     zIndex: 200
                 });
 
-                self.mapListeners['marker drag ' + i] = google.maps.event.addListener(marker, 'drag', self.onMarkerDragged.bind(self));
+                self.addListener(marker, 'drag', self.onMarkerDragged);
                 return marker;
             });
 
@@ -249,7 +232,7 @@
         */
         onMapFirstClick(event) {
             this.drawStartingPoint(event.latLng);
-            this.mapListeners['map mousemove'] = google.maps.event.addListener(this.options.map, 'mousemove', this.onMouseMove.bind(this));
+            this.addListener(this.options.map, 'mousemove', this.onMouseMove);
             if (this.options.markerPlacedCallback) { this.options.markerPlacedCallback(); }
         }
 
@@ -258,21 +241,17 @@
             this.drawPolygon();
             this.updateHandles();
             // don't forget to fire the polygon callback to notify of the new position
-            if (this.options.polygonCallback) { this.options.polygonCallback(this.getPathLatLng()); }
+            if (this.options.polygonCallback) { this.options.polygonCallback(this.coords); }
         }
 
         onHandleDragged(i, event) {
             // draw a line between a & b which
-            var l = this.coords.length,
-                n = (i + 1) % l,
-                latLngA = this.coords[i],
-                latLngC = this.coords[n],
-                path = [latLngA, event.latLng, latLngC];
-
-            var params = extend({
-                path: path,
-                map: this.options.map
-            }, this.options.styles.handleLine);
+            const n = (i + 1) % this.coords.length,
+                path = [this.coords[i], event.latLng, this.coords[n]],
+                params = extend({
+                    path: path,
+                    map: this.options.map
+                }, this.options.styles.handleLine);
 
             if (!this.handlePolyline) {
                 // The Polyline has not yet been created, so let's do it and bind the events
@@ -287,18 +266,18 @@
             this.setEditMode();
 
             // don't forget to fire the polygon callback to notify of the new position
-            if (this.options.polygonCallback) { this.options.polygonCallback(this.getPathLatLng()); }
+            if (this.options.polygonCallback) { this.options.polygonCallback(this.coords); }
         }
 
         onMouseMove(event) {
             if (this.polygonIsComplete) { return; } //TODO: shouldn't be necessary
 
-            var path = this.coords.slice(0);
+            const path = this.coords.slice(0);
             path.push(event.latLng);
             this.drawPolyline(path);
         }
 
-        onShapeClicked(shape, event) {
+        onShapeClicked(event) {
             this.addCoord(event.latLng);
         }
 
@@ -307,15 +286,6 @@
                 return;
             }
             this.setPolygonComplete();
-        }
-
-        getPathLatLng() {
-            return this.coords.map( function(c) {
-                return {
-                    latitude: c.lat(),
-                    longitude: c.lng()
-                };
-            });
         }
     };
 
