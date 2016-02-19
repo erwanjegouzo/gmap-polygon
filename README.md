@@ -30,6 +30,8 @@ var gMapPolygon = new GMapPolygon({
     }
 });
 
+gMapPolygon.init(path);
+
 ```
 
 ## Options

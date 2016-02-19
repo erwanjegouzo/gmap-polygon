@@ -9,12 +9,10 @@
             if (!options.map) {
                 return console.error('options.map is required');
             }
-
             this.options = options;
-            return this.destroy().initialize();
         }
 
-        initialize(path) {
+        init(path) {
             this.options.map.setOptions({ draggableCursor: 'crosshair' });
 
             if (path && path.length) {
@@ -22,14 +20,16 @@
                 this.setEditMode();
             } else {
                 this.addListener(this.options.map, 'click', this.onShapeClicked);
-                google.maps.event.addListenerOnce(this.options.map, 'click', this.onMapFirstClick.bind(this));
+                this.listeners.push( // add to the list even if listenOnce in case of multiple initializations
+                    google.maps.event.addListenerOnce(this.options.map, 'click', this.onMapFirstClick.bind(this))
+                );
             }
 
             return this;
         }
 
         addListener(instance, eventType, cb, context) {
-            cb = context ? cb.bind(this, context) : cb.bind(this);
+            cb = context !== undefined ? cb.bind(this, context) : cb.bind(this);
             this.listeners.push(
                 google.maps.event.addListener(instance, eventType, cb)
             );
@@ -43,15 +43,14 @@
             // remove all the listeners
             this.destroyMapListeners();
 
-            // reset the properties
             this.coords = [];
-            // this.mapListeners = [];
-            // this.polyline = null;
-            // this.polygon = null;
-            // this.handles = null;
-            // this.handlePolyline = null;
-            // this.markers = null;
-            // this.startingPoint = null;
+            this.mapListeners = [];
+            this.polyline = null;
+            this.polygon = null;
+            this.handles = null;
+            this.handlePolyline = null;
+            this.markers = null;
+            this.startingPoint = null;
             this.polygonIsComplete = false;
 
             return this;
@@ -90,7 +89,6 @@
         drawStartingPoint(latLng) {
             this.startingPoint = this.getMarker(latLng);
             this.addListener(this.startingPoint, 'click', this.onStartingPointClicked);
-            this.addListener(this.startingPoint, 'mousemove', this.onMouseMove);
         }
 
         drawPolyline(path) {
@@ -195,7 +193,7 @@
         setPolygonComplete() {
             this.polygonIsComplete = true;
             // remove the lines & starting point
-            this.destroyShape([this.polyline, this.startingPoint]);
+            this.destroyShape([this.polyline, this.startingPoint]); 
             if (this.options.polygonCallback) { this.options.polygonCallback(this.coords); }
             this.setEditMode();
         }
@@ -270,8 +268,7 @@
         }
 
         onMouseMove(event) {
-            if (this.polygonIsComplete) { return; } //TODO: shouldn't be necessary
-
+            if (this.polygonIsComplete) { return; }
             const path = this.coords.slice(0);
             path.push(event.latLng);
             this.drawPolyline(path);
