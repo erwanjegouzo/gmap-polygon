@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Gmap Polygon</title>
+<style>
+  #map {
+    width: 500px;
+    height: 400px;
+  }
+</style>
+
+<script>
+function initMap() {
+	var mapDiv = document.getElementById('map');
+	var map = new google.maps.Map(mapDiv, {
+		center: {lat: 44.540, lng: -78.546},
+		zoom: 8
+	});
+
+	var gMapPolygon = new GMapPolygon({
+		map: map,
+	    polygonCallback: function(){},
+	    markerPlacedCallback: function(){},
+	    styles: {
+	        line: {
+	        	strokeColor: '#f91560',
+	            strokeOpacity: 1,
+	            strokeWeight: 2
+	        },
+	        point: {
+	        	strokeColor: '#f91560',
+	            strokeOpacity: 1,
+	            strokeWeight: 3,
+	            fillColor: '#FFB347',
+	            fillOpacity: 1,
+	            scale: 8
+	        },
+	        handleLine: {
+	            strokeColor: '#FFB347',
+	            strokeOpacity: 1,
+	            strokeWeight: 2
+	        },
+	        polygonHighlight: {
+	            strokeColor: '#f91560',
+	            strokeOpacity: 1,
+	            strokeWeight: 2,
+	            fillColor: '#f91560',
+	            fillOpacity: 0.2
+	        },
+	        polygonMask: { // while the polygon is being drawn, just show the pink fill
+	            strokeWeight: 0,
+	            fillColor: '#f91560',
+	            fillOpacity: 0.2
+	        },
+	        handle: {
+	        	strokeColor: '#FFB347',
+	            strokeOpacity: 1,
+	            strokeWeight: 3,
+	            fillColor: '#F4C5CE',
+	            fillOpacity: 1,
+	            scale: 6
+	        }
+	    }
+	});
+	gMapPolygon.init();
+}
+</script>
+
+</head>
+<body>
+	<div id="map"></div>
+	<script src="../dist/index.js"></script>
+	<script src="https://maps.googleapis.com/maps/api/js?callback=initMap"></script>
+</body>
+</html>

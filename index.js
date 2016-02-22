@@ -1,18 +1,30 @@
 ;(function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
-    global.moment = factory()
+    window.GMapPolygon = factory()
 }(this, function () { 'use strict';
 
-    class Polygon {
+    class GMapPolygon {
         constructor(options) {
             if (!options.map) {
                 return console.error('options.map is required');
             }
             this.options = options;
+
+            this.coords = [];
+            this.mapListeners = [];
+            this.polyline = null;
+            this.polygon = null;
+            this.handles = null;
+            this.handlePolyline = null;
+            this.markers = null;
+            this.startingPoint = null;
+            this.polygonIsComplete = false;
+            this.listeners = [];
         }
 
         init(path) {
+            console.log('[INIT]', this.options.map);
             this.options.map.setOptions({ draggableCursor: 'crosshair' });
 
             if (path && path.length) {
@@ -42,16 +54,6 @@
             this.destroyShape(this.handles);
             // remove all the listeners
             this.destroyMapListeners();
-
-            this.coords = [];
-            this.mapListeners = [];
-            this.polyline = null;
-            this.polygon = null;
-            this.handles = null;
-            this.handlePolyline = null;
-            this.markers = null;
-            this.startingPoint = null;
-            this.polygonIsComplete = false;
 
             return this;
         }
@@ -297,6 +299,6 @@
         return out;
     };
 
-    return Polygon;
+    return GMapPolygon;
 
 }));
