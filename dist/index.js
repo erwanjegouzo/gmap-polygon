@@ -21,7 +21,6 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
             this.options = options;
 
             this.coords = [];
-            this.mapListeners = [];
             this.polyline = null;
             this.polygon = null;
             this.handles = null;
@@ -35,14 +34,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         _createClass(GMapPolygon, [{
             key: 'init',
             value: function init(path) {
-                console.log('[INIT]', this.options.map);
                 this.options.map.setOptions({ draggableCursor: 'crosshair' });
 
                 if (path && path.length) {
                     this.coords = path;
                     this.setEditMode();
                 } else {
-                    this.addListener(this.options.map, 'click', this.onShapeClicked);
+                    this.addListener(this.options.map, 'click', this.onShapeClicked, 'map');
                     this.listeners.push( // add to the list even if listenOnce in case of multiple initializations
                     google.maps.event.addListenerOnce(this.options.map, 'click', this.onMapFirstClick.bind(this)));
                 }
@@ -52,8 +50,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         }, {
             key: 'addListener',
             value: function addListener(instance, eventType, cb, context) {
-                cb = context !== undefined ? cb.bind(this, context) : cb.bind(this);
-                this.listeners.push(google.maps.event.addListener(instance, eventType, cb));
+                var callback = context !== undefined ? cb.bind(this, context) : cb.bind(this);
+                this.listeners.push(google.maps.event.addListener(instance, eventType, callback));
             }
         }, {
             key: 'destroy',
@@ -84,7 +82,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
         }, {
             key: 'destroyMapListeners',
             value: function destroyMapListeners() {
-                (this.mapListeners || []).forEach(function (listener) {
+                this.listeners.forEach(function (listener) {
                     return google.maps.event.removeListener(listener);
                 });
                 this.listeners = [];
@@ -127,7 +125,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
                     // The Polyline has not yet been created, so let's do it and bind the events
                     this.polyline = new google.maps.Polyline(params);
 
-                    this.addListener(this.polyline, 'click', this.onShapeClicked);
+                    this.addListener(this.polyline, 'click', this.onShapeClicked, 'polyline');
                     if (this.startingPoint) {
                         this.startingPoint.setOptions({ zIndex: 200 });
                     }
@@ -149,7 +147,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
                     this.polygon = new google.maps.Polygon(params);
 
                     this.addListener(this.polygon, 'mousemove', this.onMouseMove);
-                    this.addListener(this.polygon, 'click', this.onShapeClicked);
+                    this.addListener(this.polygon, 'click', this.onShapeClicked, 'polygon');
 
                     if (this.startingPoint) {
                         this.startingPoint.setOptions({ zIndex: 200 });
@@ -228,13 +226,13 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
             key: 'setEditMode',
             value: function setEditMode() {
                 this.polygonIsComplete = true;
+                this.destroyMapListeners();
                 this.destroyShape([this.polygon, this.handlePolyline]);
                 this.destroyShape(this.handles);
                 this.destroyShape(this.markers);
                 // draw the polygon before the markers so that is lays underneath
                 this.drawPolygon();
                 // kill all the listeners
-                this.destroyMapListeners();
 
                 var self = this;
                 this.markers = this.coords.map(function (c, i) {
@@ -319,7 +317,7 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
             }
         }, {
             key: 'onShapeClicked',
-            value: function onShapeClicked(event) {
+            value: function onShapeClicked(shape, event) {
                 this.addCoord(event.latLng);
             }
         }, {
