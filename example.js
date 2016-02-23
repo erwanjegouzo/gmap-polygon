@@ -30,7 +30,7 @@ function initMap() {
             styles: {
                 line: { strokeColor: '#f91560', strokeOpacity: 1, strokeWeight: 2},
                 point: { strokeColor: '#f91560', strokeOpacity: 1, strokeWeight: 3, fillColor: '#FFB347', fillOpacity: 1, scale: 8 },
-                handleLine: { strokeColor: '#FFB347',strokeOpacity: 1,strokeWeight: 2 },
+                handleLine: { strokeColor: '#FFB347', strokeOpacity: 1, strokeWeight: 2 },
                 polygonHighlight: { strokeColor: '#f91560', strokeOpacity: 1, strokeWeight: 2, fillColor: '#f91560', fillOpacity: 0.2 },
                 polygonMask: { strokeWeight: 0, fillColor: '#f91560', fillOpacity: 0.2 },
                 handle: { strokeColor: '#FFB347', strokeOpacity: 1, strokeWeight: 3, fillColor: '#F4C5CE', fillOpacity: 1, scale: 6 }
@@ -52,6 +52,9 @@ function initMap() {
         var coords = shape.map(function (coord) {
             return new google.maps.LatLng(coord[0], coord[1]);
         });
+        // create 1 polygon for each preset shapes
         createPolygon(coords);
     });
+    // create another to play around
+    createPolygon();
 }
