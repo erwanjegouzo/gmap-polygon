@@ -1,3 +1,5 @@
+import GMapPolygon from '../dist/index.js';
+
 window.initMap = function () {
 
     var mapContainer = document.createElement('div');
@@ -15,8 +17,8 @@ window.initMap = function () {
         it("window.google should be defined", function() {
             expect(window.google.maps).toBeDefined();
         });
-        it("window.GMapPolygon should be defined", function() {
-            expect(window.GMapPolygon).toBeDefined();
+        it("GMapPolygon should be defined", function() {
+            expect(GMapPolygon).toBeDefined();
         });
     });
 
@@ -33,12 +35,12 @@ window.initMap = function () {
                 styles: {
                     line: {}, point: {}, handleLine: {}, polygonHighlight: {}, polygonMask: {}, handle: {}
                 }
-            }),
-                path = [
-                    new google.maps.LatLng(40.7,-74.1),
-                    new google.maps.LatLng(40.8,-74.2),
-                    new google.maps.LatLng(40.9,-74.3)
-                ];
+            });
+            const path = [
+                new google.maps.LatLng(40.7,-74.1),
+                new google.maps.LatLng(40.8,-74.2),
+                new google.maps.LatLng(40.9,-74.3)
+            ];
 
             spyOn(gMapPolygon, 'setEditMode').and.callThrough();
             spyOn(google.maps, 'Polygon');
